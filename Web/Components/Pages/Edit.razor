@@ -5,7 +5,9 @@
 @inject IServiceScopeFactory ScopeFactory
 @inject NavigationManager Navigation
 
-<form method="post" @onsubmit="@OnEdit" @formname="edit-note-form" class="d-flex flex-column gap-2">
+<PageTitle>Заметка @Id</PageTitle>
+
+<form method="post" @onsubmit="@OnEdit" @formname="edit-note-form" class="d-flex flex-column gap-2 w-100">
     <AntiforgeryToken />
     <InputTextArea class="form-control" rows="3" @bind-Value="@Request!.Text"/>
     <button type="submit" class="btn btn-primary w-100">Редактировать</button>
