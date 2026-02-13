@@ -1,0 +1,38 @@
+@page "/new"
+@using System.ComponentModel.DataAnnotations
+@using Web.Data
+@inject IServiceScopeFactory ScopeFactory
+@inject NavigationManager Navigation
+
+<form method="post" @onsubmit="@OnPost" @formname="new-note-form" class="d-flex flex-column gap-2">
+    <AntiforgeryToken />
+    <InputTextArea class="form-control" rows="3" @bind-Value="@Request.Text"/>
+    <button type="submit" class="btn btn-success w-100">Создать</button>
+</form>
+
+@code {
+
+    [SupplyParameterFromForm]
+    public CreateNoteRequest Request { get; set; } = null!;
+
+    protected override void OnParametersSet() => Request ??= new CreateNoteRequest();
+
+    public record CreateNoteRequest
+    {
+        [Required]
+        public string Text { get; set; } = string.Empty;
+    }
+
+    async Task OnPost()
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+        dataContext.Notes.Add(new Note
+        {
+            Text = Request!.Text
+        });
+        await dataContext.SaveChangesAsync();
+        Navigation.NavigateTo("/");
+    }
+    
+}

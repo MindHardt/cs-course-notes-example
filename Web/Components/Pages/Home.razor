@@ -1,0 +1,54 @@
+﻿@page "/"
+@using Microsoft.EntityFrameworkCore
+@using Web.Data
+@inject IServiceScopeFactory ScopeFactory
+
+<PageTitle>Заметки</PageTitle>
+
+<h1>Ваши заметки:</h1>
+<div class="container">
+    <div class="row g-4">
+        @foreach (var note in _notes)
+        {
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+                <a href="/@note.Id" class="text-body text-decoration-none">
+                    <div class="card shadow h-100">
+                        <div class="card-body">
+                            <p class="card-text">@note.Text</p>
+                        </div>
+                        <div class="card-footer">
+                            @note.UpdatedAt.ToString("d")
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3 col-xl-2">
+            <a href="/new" class="btn btn-outline-success w-100 my-auto">
+                +
+            </a>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [SupplyParameterFromQuery]
+    public string? Search { get; set; }
+    
+    private List<Note> _notes = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+        var query = dataContext.Notes.AsQueryable();
+        if (Search is { } search)
+        {
+            query = query.Where(x => EF.Functions.Like(x.Text, $"%{search}%"));
+        }
+
+        _notes = await query.OrderByDescending(x => x.UpdatedAt.ToString()).ToListAsync();
+    }
+
+}

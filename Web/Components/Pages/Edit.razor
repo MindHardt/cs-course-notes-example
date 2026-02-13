@@ -1,0 +1,70 @@
+@page "/{Id:int}"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using Web.Data
+@inject IServiceScopeFactory ScopeFactory
+@inject NavigationManager Navigation
+
+<form method="post" @onsubmit="@OnEdit" @formname="edit-note-form" class="d-flex flex-column gap-2">
+    <AntiforgeryToken />
+    <InputTextArea class="form-control" rows="3" @bind-Value="@Request!.Text"/>
+    <button type="submit" class="btn btn-primary w-100">Редактировать</button>
+</form>
+<form method="post" @onsubmit="@OnDelete" @formname="delete-note-form">
+    <AntiforgeryToken />
+    <button type="submit" class="btn btn-danger w-100">Удалить</button>
+</form>
+
+@code {
+
+    [Parameter]
+    public int Id { get; set; }
+    
+    [SupplyParameterFromForm]
+    public EditNoteRequest? Request { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+
+        Request ??= new EditNoteRequest
+        {
+            Text = await dataContext.Notes
+                .Where(x => x.Id == Id)
+                .Select(x => x.Text)
+                .FirstAsync()
+        };
+    }
+
+    public record EditNoteRequest
+    {
+        [Required]
+        public string Text { get; set; } = string.Empty;
+    }
+
+    async Task OnEdit()
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+        var note = await dataContext.Notes
+            .FirstAsync(x => x.Id == Id);
+        note.Text = Request!.Text;
+        note.UpdatedAt = DateTimeOffset.UtcNow;
+        
+        await dataContext.SaveChangesAsync();
+        Navigation.NavigateTo("/");
+    }
+
+    async Task OnDelete()
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var dataContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+        var note = await dataContext.Notes
+            .FirstAsync(x => x.Id == Id);
+        dataContext.Notes.Remove(note);
+        await dataContext.SaveChangesAsync();
+        Navigation.NavigateTo("/");
+    }
+    
+}
